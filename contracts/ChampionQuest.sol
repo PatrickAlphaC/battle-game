@@ -40,8 +40,7 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
 
     mapping(bytes32 => NewChampionRequest) public requestToNewChampionRequest;
     mapping(bytes32 => BattleRequest) public requestToBattleRequest;
-    mapping(bytes32 => RandomNumberFulfillmentFunction)
-        public requestToFulfillmentFunction;
+    mapping(bytes32 => RandomNumberFulfillmentFunction) public requestToFulfillmentFunction;
 
     event requestedChampion(bytes32 indexed requestId);
     event requestedBattle(bytes32 indexed requestId);
@@ -54,41 +53,24 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
         bytes32 _keyhash,
         uint256 _fee,
         uint256 _battleFee
-    )
-        VRFConsumerBase(_vrfCoordinator, _linkToken)
-        ERC721("ChampionQuest", "CQ")
-    {
+    ) VRFConsumerBase(_vrfCoordinator, _linkToken) ERC721("ChampionQuest", "CQ") {
         s_keyHash = _keyhash;
         s_fee = _fee;
         s_championQuestToken = IERC20(_championQuestToken);
         s_battleFee = _battleFee;
     }
 
-    function requestNewRandomChampion(string memory name)
-        public
-        returns (bytes32)
-    {
+    function requestNewRandomChampion(string memory name) public returns (bytes32) {
         require(LINK.balanceOf(address(this)) >= s_fee, "Not enough LINK");
         bytes32 requestId = requestRandomness(s_keyHash, s_fee);
-        requestToFulfillmentFunction[
-            requestId
-        ] = RandomNumberFulfillmentFunction.ChampionCreation;
-        requestToNewChampionRequest[requestId] = NewChampionRequest(
-            name,
-            msg.sender
-        );
+        requestToFulfillmentFunction[requestId] = RandomNumberFulfillmentFunction.ChampionCreation;
+        requestToNewChampionRequest[requestId] = NewChampionRequest(name, msg.sender);
         emit requestedChampion(requestId);
         return requestId;
     }
 
-    function fulfillRandomness(bytes32 requestId, uint256 randomNumber)
-        internal
-        override
-    {
-        if (
-            requestToFulfillmentFunction[requestId] ==
-            RandomNumberFulfillmentFunction.ChampionCreation
-        ) {
+    function fulfillRandomness(bytes32 requestId, uint256 randomNumber) internal override {
+        if (requestToFulfillmentFunction[requestId] == RandomNumberFulfillmentFunction.ChampionCreation) {
             characterCreationFulfillment(requestId, randomNumber);
         } else {
             battleFulfillment(requestId, randomNumber);
@@ -112,11 +94,7 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
             uint256
         )
     {
-        return (
-            s_champions[tokenId].attack,
-            s_champions[tokenId].defense,
-            s_champions[tokenId].experience
-        );
+        return (s_champions[tokenId].attack, s_champions[tokenId].defense, s_champions[tokenId].experience);
     }
 
     function sqrt(uint256 x) internal view returns (uint256 y) {
@@ -128,54 +106,33 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
         }
     }
 
-    function characterCreationFulfillment(
-        bytes32 requestId,
-        uint256 randomNumber
-    ) internal {
+    function characterCreationFulfillment(bytes32 requestId, uint256 randomNumber) internal {
         uint256 newId = s_champions.length;
         uint256 attack = randomNumber % 100;
         uint256 defense = uint256(keccak256(abi.encode(randomNumber, 1))) % 100;
         uint256 experience = 0;
-        NewChampionRequest memory champRequest = requestToNewChampionRequest[
-            requestId
-        ];
-        Champion memory character = Champion(
-            attack,
-            defense,
-            experience,
-            champRequest.championName
-        );
+        NewChampionRequest memory champRequest = requestToNewChampionRequest[requestId];
+        Champion memory character = Champion(attack, defense, experience, champRequest.championName);
         s_champions.push(character);
         _safeMint(champRequest.sender, newId);
     }
 
-    function requestBattle(uint256 championOneId, uint256 championTwoId)
-        public
-        returns (bytes32 requestId)
-    {
-        require(
-            _isApprovedOrOwner(msg.sender, championOneId),
-            "You don't own champion one!"
-        );
+    function requestBattle(uint256 championOneId, uint256 championTwoId) public returns (bytes32 requestId) {
+        require(_isApprovedOrOwner(msg.sender, championOneId), "You don't own champion one!");
         require(LINK.balanceOf(address(this)) >= s_fee, "Not enough LINK");
-        s_championQuestToken.transferFrom(
-            msg.sender,
-            address(this),
-            s_battleFee
-        );
+        s_championQuestToken.transferFrom(msg.sender, address(this), s_battleFee);
         requestId = requestRandomness(s_keyHash, s_fee);
-        requestToFulfillmentFunction[
-            requestId
-        ] = RandomNumberFulfillmentFunction.ChampionBattle;
-        requestToBattleRequest[requestId] = BattleRequest(
-            championOneId,
-            championTwoId
-        );
+        requestToFulfillmentFunction[requestId] = RandomNumberFulfillmentFunction.ChampionBattle;
+        requestToBattleRequest[requestId] = BattleRequest(championOneId, championTwoId);
         emit requestedBattle(requestId);
     }
 
     // Winner gets +2
     // Loser gets -1
+
+    // NFT A has attack of 50 and B has defense of 25
+    // A's chance of winning is going to be 50 / 75
+
     function battleFulfillment(bytes32 requestId, uint256 randomness) internal {
         BattleRequest memory battleRequest = requestToBattleRequest[requestId];
         uint256 attack = s_champions[battleRequest.championTokenIdOne].attack;
@@ -184,17 +141,13 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
         uint256 winningNumber = randomness % probabilityTotal;
         if (winningNumber >= attack) {
             s_champions[battleRequest.championTokenIdOne].experience += 2;
-            if (
-                s_champions[battleRequest.championTokenIdTwo].experience >= 10
-            ) {
+            if (s_champions[battleRequest.championTokenIdTwo].experience >= 10) {
                 s_champions[battleRequest.championTokenIdTwo].experience -= 1;
             }
             emit battleDone(battleRequest.championTokenIdOne);
         } else {
             s_champions[battleRequest.championTokenIdTwo].experience += 2;
-            if (
-                s_champions[battleRequest.championTokenIdOne].experience >= 10
-            ) {
+            if (s_champions[battleRequest.championTokenIdOne].experience >= 10) {
                 s_champions[battleRequest.championTokenIdOne].experience -= 1;
             }
             emit battleDone(battleRequest.championTokenIdTwo);
@@ -202,27 +155,15 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
     }
 
     function useExperienceOnAttack(uint256 tokenId, uint256 amount) public {
-        require(
-            _isApprovedOrOwner(msg.sender, tokenId),
-            "You don't own this character!"
-        );
-        require(
-            s_champions[tokenId].experience >= amount,
-            "Not enough experience"
-        );
+        require(_isApprovedOrOwner(msg.sender, tokenId), "You don't own this character!");
+        require(s_champions[tokenId].experience >= amount, "Not enough experience");
         s_champions[tokenId].attack += amount;
         s_champions[tokenId].experience -= amount;
     }
 
     function useExperienceOnDefense(uint256 tokenId, uint256 amount) public {
-        require(
-            _isApprovedOrOwner(msg.sender, tokenId),
-            "You don't own this character!"
-        );
-        require(
-            s_champions[tokenId].experience >= amount,
-            "Not enough experience"
-        );
+        require(_isApprovedOrOwner(msg.sender, tokenId), "You don't own this character!");
+        require(s_champions[tokenId].experience >= amount, "Not enough experience");
         s_champions[tokenId].defense += amount;
         s_champions[tokenId].experience -= amount;
     }

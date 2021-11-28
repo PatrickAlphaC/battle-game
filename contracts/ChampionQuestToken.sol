@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract ChampionQuestToken is ERC20 {
     IERC20 public immutable s_ufoToken;
-    uint256 public constant s_ufoToCqtRate = 100; // 100 CQT = 1 UFO
 
     constructor(address ufoTokenAddress) ERC20("ChampionQuestToken", "CQT") {
         s_ufoToken = IERC20(ufoTokenAddress);
