@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "hardhat/console.sol";
 
 contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
     bytes32 internal s_keyHash;
@@ -97,7 +98,7 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
         return (s_champions[tokenId].attack, s_champions[tokenId].defense, s_champions[tokenId].experience);
     }
 
-    function sqrt(uint256 x) internal view returns (uint256 y) {
+    function sqrt(uint256 x) internal pure returns (uint256 y) {
         uint256 z = (x + 1) / 2;
         y = x;
         while (z < y) {
@@ -122,7 +123,7 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
         require(LINK.balanceOf(address(this)) >= s_fee, "Not enough LINK");
         s_championQuestToken.transferFrom(msg.sender, address(this), s_battleFee);
         requestId = requestRandomness(s_keyHash, s_fee);
-        requestToFulfillmentFunction[requestId] = RandomNumberFulfillmentFunction.ChampionBattle;
+        requestToFulfillmentFunction[requestId] = RandomNumberFulfillmentFunction(1);
         requestToBattleRequest[requestId] = BattleRequest(championOneId, championTwoId);
         emit requestedBattle(requestId);
     }
@@ -139,6 +140,9 @@ contract ChampionQuest is ERC721URIStorage, VRFConsumerBase, Ownable {
         uint256 defense = s_champions[battleRequest.championTokenIdTwo].defense;
         uint256 probabilityTotal = attack + defense;
         uint256 winningNumber = randomness % probabilityTotal;
+        console.log(winningNumber);
+        console.log(attack);
+        console.log(defense);
         if (winningNumber >= attack) {
             s_champions[battleRequest.championTokenIdOne].experience += 2;
             if (s_champions[battleRequest.championTokenIdTwo].experience >= 10) {

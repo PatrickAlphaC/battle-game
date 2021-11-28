@@ -23,6 +23,7 @@
     "solidity-coverage": "^0.7.17"
   },
   "dependencies": {
+    "@appliedblockchain/chainlink-plugins-fund-link": "^0.0.3",
     "@chainlink/contracts": "^0.2.2",
     "@chainlink/token": "^1.1.0",
     "@openzeppelin/contracts": "^4.3.3",

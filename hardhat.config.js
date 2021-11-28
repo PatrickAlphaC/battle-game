@@ -7,6 +7,7 @@ require("solidity-coverage");
 require("hardhat-deploy");
 require("hardhat-gas-reporter");
 require("@nomiclabs/hardhat-ethers");
+require("@appliedblockchain/chainlink-plugins-fund-link")
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
